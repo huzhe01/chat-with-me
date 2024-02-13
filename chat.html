@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Web Page</title>
+</head>
+<body>
+
+<h1>Hello, World!</h1>
+<p>This is a paragraph.</p>
+<label for="oilAmount">Oil amount (liters):</label>
+<input type="number" id="oilAmount" name="oilAmount">
+
+<label for="oilPrice">Price per liter:</label>
+<input type="number" id="oilPrice" name="oilPrice" step="0.01">
+
+<button onclick="calculateTotal()">Calculate Total Price</button>
+
+
+
+<p id="totalPrice"></p>
+
+<script>
+function calculateTotal() {
+    var amount = document.getElementById('oilAmount').value;
+    var price = document.getElementById('oilPrice').value;
+    var total = amount * price;
+    document.getElementById('totalPrice').textContent = 'Total Price: ' + total.toFixed(2);
+}
+</script>
+</body>
+</html>
