@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV抽认卡生成器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .upload-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-label {
+            display: block;
+            padding: 20px;
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9ff;
+        }
+
+        .file-label:hover {
+            background: #eef0ff;
+            border-color: #764ba2;
+        }
+
+        .file-label.dragover {
+            background: #e0e4ff;
+            border-color: #764ba2;
+        }
+
+        .file-label-text {
+            font-size: 1.1em;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .file-info {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .csv-preview {
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .csv-preview.show {
+            display: block;
+        }
+
+        .csv-preview table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .csv-preview th,
+        .csv-preview td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .csv-preview th {
+            background: #667eea;
+            color: white;
+            position: sticky;
+            top: 0;
+        }
+
+        .csv-preview tr:hover {
+            background: #f5f5f5;
+        }
+
+        .column-selector {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .column-selector.show {
+            display: block;
+        }
+
+        .column-selector label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .column-selector select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .flashcard-section {
+            display: none;
+        }
+
+        .flashcard-section.show {
+            display: block;
+        }
+
+        .stats {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+        }
+
+        .stat-item {
+            flex: 1;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .flashcard-container {
+            perspective: 1000px;
+            margin-bottom: 30px;
+        }
+
+        .flashcard {
+            width: 100%;
+            height: 400px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+        }
+
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            font-size: 1.5em;
+            text-align: center;
+            word-wrap: break-word;
+            overflow-y: auto;
+        }
+
+        .card-front {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .card-back {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            transform: rotateY(180deg);
+        }
+
+        .controls {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-flip {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-easy {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-medium {
+            background: #ff9800;
+            color: white;
+        }
+
+        .btn-hard {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-prev,
+        .btn-next {
+            background: #9e9e9e;
+            color: white;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: white;
+            padding: 40px;
+        }
+
+        .empty-state h2 {
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .card-face {
+                font-size: 1.2em;
+                padding: 30px;
+            }
+
+            .flashcard {
+                height: 350px;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .control-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 CSV抽认卡生成器</h1>
+            <p>上传CSV文件，快速创建抽认卡进行学习</p>
+        </div>
+
+        <div class="upload-section">
+            <div class="file-input-wrapper">
+                <input type="file" id="csvFile" class="file-input" accept=".csv" />
+                <label for="csvFile" class="file-label" id="fileLabel">
+                    <div class="file-label-text">
+                        📁 点击选择CSV文件或拖拽文件到此处
+                    </div>
+                </label>
+            </div>
+            <div class="file-info" id="fileInfo"></div>
+            <div class="csv-preview" id="csvPreview"></div>
+            
+            <div class="column-selector" id="columnSelector">
+                <label for="frontColumn">选择正面列（问题/单词）：</label>
+                <select id="frontColumn"></select>
+                <label for="backColumn" style="margin-top: 15px;">选择背面列（答案/释义）：</label>
+                <select id="backColumn"></select>
+                <button class="btn" id="generateBtn">生成抽认卡</button>
+            </div>
+        </div>
+
+        <div class="flashcard-section" id="flashcardSection">
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="currentIndex">0</div>
+                    <div class="stat-label">当前卡片</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="totalCards">0</div>
+                    <div class="stat-label">总卡片数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="masteredCount">0</div>
+                    <div class="stat-label">已掌握</div>
+                </div>
+            </div>
+
+            <div class="flashcard-container">
+                <div class="flashcard" id="flashcard">
+                    <div class="card-face card-front" id="cardFront">
+                        <div id="frontContent">点击生成抽认卡开始学习</div>
+                    </div>
+                    <div class="card-face card-back" id="cardBack">
+                        <div id="backContent"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+
+            <div class="controls">
+                <button class="control-btn btn-prev" id="prevBtn">⬅️ 上一张</button>
+                <button class="control-btn btn-flip" id="flipBtn">🔄 翻转</button>
+                <button class="control-btn btn-easy" id="easyBtn">✅ 简单</button>
+                <button class="control-btn btn-medium" id="mediumBtn">⚠️ 中等</button>
+                <button class="control-btn btn-hard" id="hardBtn">❌ 困难</button>
+                <button class="control-btn btn-next" id="nextBtn">下一张 ➡️</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let flashcards = [];
+        let currentIndex = 0;
+        let masteredCards = new Set();
+
+        const csvFileInput = document.getElementById('csvFile');
+        const fileLabel = document.getElementById('fileLabel');
+        const fileInfo = document.getElementById('fileInfo');
+        const csvPreview = document.getElementById('csvPreview');
+        const columnSelector = document.getElementById('columnSelector');
+        const frontColumnSelect = document.getElementById('frontColumn');
+        const backColumnSelect = document.getElementById('backColumn');
+        const generateBtn = document.getElementById('generateBtn');
+        const flashcardSection = document.getElementById('flashcardSection');
+        const flashcard = document.getElementById('flashcard');
+        const frontContent = document.getElementById('frontContent');
+        const backContent = document.getElementById('backContent');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const flipBtn = document.getElementById('flipBtn');
+        const easyBtn = document.getElementById('easyBtn');
+        const mediumBtn = document.getElementById('mediumBtn');
+        const hardBtn = document.getElementById('hardBtn');
+        const currentIndexDisplay = document.getElementById('currentIndex');
+        const totalCardsDisplay = document.getElementById('totalCards');
+        const masteredCountDisplay = document.getElementById('masteredCount');
+        const progressFill = document.getElementById('progressFill');
+
+        let csvData = [];
+        let columns = [];
+
+        // 文件拖拽功能
+        fileLabel.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileLabel.classList.add('dragover');
+        });
+
+        fileLabel.addEventListener('dragleave', () => {
+            fileLabel.classList.remove('dragover');
+        });
+
+        fileLabel.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileLabel.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].name.endsWith('.csv')) {
+                csvFileInput.files = files;
+                handleFileSelect(files[0]);
+            }
+        });
+
+        csvFileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            fileInfo.textContent = `已选择文件: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+            fileInfo.classList.add('show');
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result;
+                parseCSV(text);
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        function parseCSV(text) {
+            const lines = text.split('\n').filter(line => line.trim());
+            if (lines.length === 0) {
+                alert('CSV文件为空');
+                return;
+            }
+
+            // 检测分隔符（逗号或分号）
+            const delimiter = text.includes(',') ? ',' : ';';
+            
+            // 解析CSV（简单版本，处理基本情况和引号）
+            csvData = [];
+            columns = lines[0].split(delimiter).map(col => col.trim().replace(/^"|"$/g, ''));
+            
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                // 简单的CSV解析（处理引号内的逗号）
+                const row = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let j = 0; j < line.length; j++) {
+                    const char = line[j];
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === delimiter && !inQuotes) {
+                        row.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                row.push(current.trim());
+                
+                if (row.length === columns.length) {
+                    csvData.push(row);
+                }
+            }
+
+            // 显示预览
+            showPreview();
+            
+            // 填充列选择器
+            frontColumnSelect.innerHTML = '';
+            backColumnSelect.innerHTML = '';
+            columns.forEach((col, index) => {
+                const option1 = document.createElement('option');
+                option1.value = index;
+                option1.textContent = col || `列 ${index + 1}`;
+                frontColumnSelect.appendChild(option1);
+                
+                const option2 = document.createElement('option');
+                option2.value = index;
+                option2.textContent = col || `列 ${index + 1}`;
+                backColumnSelect.appendChild(option2);
+            });
+
+            // 默认选择第一列和第二列
+            if (columns.length >= 2) {
+                frontColumnSelect.value = 0;
+                backColumnSelect.value = 1;
+            }
+
+            columnSelector.classList.add('show');
+        }
+
+        function showPreview() {
+            let html = '<table><thead><tr>';
+            columns.forEach(col => {
+                html += `<th>${col || '未命名列'}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+            
+            const previewRows = csvData.slice(0, 5);
+            previewRows.forEach(row => {
+                html += '<tr>';
+                row.forEach(cell => {
+                    html += `<td>${cell || ''}</td>`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            
+            if (csvData.length > 5) {
+                html += `<p style="padding: 10px; text-align: center; color: #666;">显示前5行，共${csvData.length}行数据</p>`;
+            }
+            
+            csvPreview.innerHTML = html;
+            csvPreview.classList.add('show');
+        }
+
+        generateBtn.addEventListener('click', () => {
+            const frontColIndex = parseInt(frontColumnSelect.value);
+            const backColIndex = parseInt(backColumnSelect.value);
+
+            if (frontColIndex === backColIndex) {
+                alert('请选择不同的列作为正面和背面');
+                return;
+            }
+
+            flashcards = csvData.map(row => ({
+                front: row[frontColIndex] || '',
+                back: row[backColIndex] || '',
+                difficulty: null
+            })).filter(card => card.front && card.back);
+
+            if (flashcards.length === 0) {
+                alert('没有有效的抽认卡数据');
+                return;
+            }
+
+            // 打乱顺序
+            flashcards = shuffleArray(flashcards);
+            
+            currentIndex = 0;
+            masteredCards.clear();
+            flashcardSection.classList.add('show');
+            updateCard();
+        });
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function updateCard() {
+            if (flashcards.length === 0) return;
+
+            const card = flashcards[currentIndex];
+            frontContent.textContent = card.front;
+            backContent.textContent = card.back;
+            
+            // 重置翻转状态
+            flashcard.classList.remove('flipped');
+
+            // 更新统计
+            currentIndexDisplay.textContent = currentIndex + 1;
+            totalCardsDisplay.textContent = flashcards.length;
+            masteredCountDisplay.textContent = masteredCards.size;
+            
+            // 更新进度条
+            const progress = ((currentIndex + 1) / flashcards.length) * 100;
+            progressFill.style.width = progress + '%';
+        }
+
+        flipBtn.addEventListener('click', () => {
+            flashcard.classList.toggle('flipped');
+        });
+
+        prevBtn.addEventListener('click', () => {
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateCard();
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (currentIndex < flashcards.length - 1) {
+                currentIndex++;
+                updateCard();
+            }
+        });
+
+        easyBtn.addEventListener('click', () => {
+            flashcards[currentIndex].difficulty = 'easy';
+            masteredCards.add(currentIndex);
+            masteredCountDisplay.textContent = masteredCards.size;
+            setTimeout(() => {
+                if (currentIndex < flashcards.length - 1) {
+                    currentIndex++;
+                    updateCard();
+                } else {
+                    alert('恭喜！你已经完成了所有卡片的学习！');
+                }
+            }, 300);
+        });
+
+        mediumBtn.addEventListener('click', () => {
+            flashcards[currentIndex].difficulty = 'medium';
+            setTimeout(() => {
+                if (currentIndex < flashcards.length - 1) {
+                    currentIndex++;
+                    updateCard();
+                }
+            }, 300);
+        });
+
+        hardBtn.addEventListener('click', () => {
+            flashcards[currentIndex].difficulty = 'hard';
+            // 困难卡片会重新加入队列末尾
+            const hardCard = flashcards.splice(currentIndex, 1)[0];
+            flashcards.push(hardCard);
+            if (currentIndex >= flashcards.length) {
+                currentIndex = flashcards.length - 1;
+            }
+            updateCard();
+        });
+
+        // 键盘快捷键
+        document.addEventListener('keydown', (e) => {
+            if (!flashcardSection.classList.contains('show')) return;
+
+            switch(e.key) {
+                case 'ArrowLeft':
+                    prevBtn.click();
+                    break;
+                case 'ArrowRight':
+                    nextBtn.click();
+                    break;
+                case ' ':
+                case 'Enter':
+                    e.preventDefault();
+                    flipBtn.click();
+                    break;
+                case '1':
+                    easyBtn.click();
+                    break;
+                case '2':
+                    mediumBtn.click();
+                    break;
+                case '3':
+                    hardBtn.click();
+                    break;
+            }
+        });
+    </script>
+</body>
+</html>
